@@ -101,7 +101,7 @@ impl eframe::App for TemplateApp {
             use egui_plot::{Line, Plot, PlotPoints};
             let sin: PlotPoints = PlotPoints::from(points);
             let line = Line::new(sin);
-            Plot::new("my_plot").view_aspect(1.0).show_x(true).show_y(true).include_x(1.0).include_x(-1.0).include_y(1.0).include_y(-1.0)
+            Plot::new("my_plot").view_aspect(1.0).width(500.0).show_x(true).show_y(true).include_x(1.0).include_x(-1.0).include_y(1.0).include_y(-1.0)
             .label_formatter(|name, value| {
                 if !name.is_empty() {
                     format!("{}: {:.*}%", name, 1, value.y)
