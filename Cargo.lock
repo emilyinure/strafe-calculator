@@ -751,18 +751,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "eframe_template"
-version = "0.1.0"
-dependencies = [
- "eframe",
- "egui",
- "env_logger",
- "log",
- "serde",
- "wasm-bindgen-futures",
-]
-
-[[package]]
 name = "egui"
 version = "0.24.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -808,6 +796,15 @@ dependencies = [
  "memoffset 0.7.1",
  "wasm-bindgen",
  "web-sys",
+]
+
+[[package]]
+name = "egui_plot"
+version = "0.24.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "29b484821a5b336af40a34151a940f52bef0f1ab56ec0d8cf80f74783eaae412"
+dependencies = [
+ "egui",
 ]
 
 [[package]]
@@ -2023,6 +2020,19 @@ name = "str-buf"
 version = "1.0.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9e08d8363704e6c71fc928674353e6b7c23dcea9d82d7012c8faf2a3a025f8d0"
+
+[[package]]
+name = "strafe_calculator"
+version = "0.1.0"
+dependencies = [
+ "eframe",
+ "egui",
+ "egui_plot",
+ "env_logger",
+ "log",
+ "serde",
+ "wasm-bindgen-futures",
+]
 
 [[package]]
 name = "syn"

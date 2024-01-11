@@ -1,13 +1,14 @@
 [package]
-name = "eframe_template"
+name = "strafe_calculator"
 version = "0.1.0"
-authors = ["Emil Ernerfeldt <emil.ernerfeldt@gmail.com>"]
+authors = ["Emily Gordon"]
 edition = "2021"
 rust-version = "1.72"
 
 
 [dependencies]
 egui = "0.24.1"
+egui_plot = "0.24.1"
 eframe = { version = "0.24.1", default-features = false, features = [
     "accesskit",     # Make egui comptaible with screen readers. NOTE: adds a lot of dependencies.
     "default_fonts", # Embed the default egui fonts.

@@ -2,19 +2,19 @@
 #[derive(serde::Deserialize, serde::Serialize)]
 #[serde(default)] // if we add new fields, give them default values when deserializing old state
 pub struct TemplateApp {
-    // Example stuff:
-    label: String,
-
-    #[serde(skip)] // This how you opt-out of serialization of a field
-    value: f32,
+    tick_rate: f32,
+    wish_speed: i32,
+    strafes_per_jump: i32,
+    starting_velocity: f32,
 }
 
 impl Default for TemplateApp {
     fn default() -> Self {
         Self {
-            // Example stuff:
-            label: "Hello World!".to_owned(),
-            value: 2.7,
+            tick_rate: 60.0,
+            wish_speed: 400,
+            strafes_per_jump: 1,
+            starting_velocity: 300.0,
         }
     }
 }
@@ -46,51 +46,78 @@ impl eframe::App for TemplateApp {
         // Put your widgets into a `SidePanel`, `TopBottomPanel`, `CentralPanel`, `Window` or `Area`.
         // For inspiration and more examples, go to https://emilk.github.io/egui
 
-        egui::TopBottomPanel::top("top_panel").show(ctx, |ui| {
-            // The top panel is often a good place for a menu bar:
-
-            egui::menu::bar(ui, |ui| {
-                // NOTE: no File->Quit on web pages!
-                let is_web = cfg!(target_arch = "wasm32");
-                if !is_web {
-                    ui.menu_button("File", |ui| {
-                        if ui.button("Quit").clicked() {
-                            ctx.send_viewport_cmd(egui::ViewportCommand::Close);
-                        }
-                    });
-                    ui.add_space(16.0);
-                }
-
-                egui::widgets::global_dark_light_mode_buttons(ui);
-            });
-        });
-
         egui::CentralPanel::default().show(ctx, |ui| {
             // The central panel the region left after adding TopPanel's and SidePanel's
-            ui.heading("eframe template");
+            ui.heading("strafe calculator");
 
             ui.horizontal(|ui| {
-                ui.label("Write something: ");
-                ui.text_edit_singleline(&mut self.label);
+                ui.label("Tick rate: ");
+                ui.add(egui::Slider::new(&mut self.tick_rate, 0.0..=200.0));
             });
-
-            ui.add(egui::Slider::new(&mut self.value, 0.0..=10.0).text("value"));
-            if ui.button("Increment").clicked() {
-                self.value += 1.0;
-            }
+        
+            ui.horizontal(|ui| {
+                ui.label("Starting speed: ");
+                ui.add(egui::Slider::new(&mut self.starting_velocity, 300.0..=1000.0));
+            });
+            
+            ui.horizontal(|ui| {
+                ui.label("Strafe count: ");
+                ui.add(egui::Slider::new(&mut self.strafes_per_jump, 1..=10));
+            });
 
             ui.separator();
 
-            ui.add(egui::github_link_file!(
-                "https://github.com/emilk/eframe_template/blob/master/",
-                "Source code."
-            ));
+            let mut time = 0.0;
+            let tick_interval = 1.0 / self.tick_rate;
 
+            let mut strafe_path: PlotPoints;
+            let mut strafe_length: f32 = 0.0;
+            let mut speed: f32 = self.starting_velocity;
+            let mut count = 0;
+
+            let strafe_time = 0.75 / self.strafes_per_jump as f32;
+            
+            while time <= strafe_time {
+                strafe_length = strafe_length + (30.0 / speed).asin().to_degrees();
+                speed = ((30.0 * 30.0) + (speed * speed)).sqrt();
+                time = time + tick_interval;
+                count = count + 1;
+            }
+
+            speed = self.starting_velocity;
+            time = 0.0;
+            let mut current_angle: f32 = strafe_length * -0.5;
+            ui.label(format!("{}", strafe_length));
+
+            let mut points: Vec<[f64; 2]> = Vec::new();
+            while time <= strafe_time {
+                current_angle = current_angle + (30.0 / speed).asin().to_degrees() * 0.5;
+                points.push([current_angle.to_radians().sin() as f64, current_angle.to_radians().cos() as f64]);
+                current_angle = current_angle + (30.0 / speed).asin().to_degrees() * 0.5;
+                speed = ((30.0 * 30.0) + (speed * speed)).sqrt();
+                time = time + tick_interval;
+            }
+            
+            use egui_plot::{Line, Plot, PlotPoints};
+            let sin: PlotPoints = PlotPoints::from(points);
+            let line = Line::new(sin);
+            Plot::new("my_plot").view_aspect(1.0).show_x(true).show_y(true).include_x(1.0).include_x(-1.0).include_y(1.0).include_y(-1.0)
+            .label_formatter(|name, value| {
+                if !name.is_empty() {
+                    format!("{}: {:.*}%", name, 1, value.y)
+                } else {
+                    "".to_owned()
+                }
+            })
+            .show(ui, |plot_ui| plot_ui.line(line));
+            
             ui.with_layout(egui::Layout::bottom_up(egui::Align::LEFT), |ui| {
                 powered_by_egui_and_eframe(ui);
                 egui::warn_if_debug_build(ui);
             });
         });
+        // 0.75 is a full jump
+        
     }
 }
 
