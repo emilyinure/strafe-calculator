@@ -75,7 +75,7 @@ impl eframe::App for TemplateApp {
             let mut speed: f32 = self.starting_velocity;
             let mut count = 0;
 
-            let strafe_time = 0.75 / self.strafes_per_jump as f32;
+            let mut strafe_time = 0.75 / self.strafes_per_jump as f32;
             
             while time <= strafe_time {
                 strafe_length = strafe_length + (30.0 / speed).asin().to_degrees();
@@ -84,18 +84,42 @@ impl eframe::App for TemplateApp {
                 count = count + 1;
             }
 
+            let total_strafe_time = 0.75;
             speed = self.starting_velocity;
             time = 0.0;
             let mut current_angle: f32 = strafe_length * -0.5;
             ui.label(format!("{}", strafe_length));
 
+            let mut switch_interval = 0.0;
+            let mut direction = false;
             let mut points: Vec<[f64; 2]> = Vec::new();
-            while time <= strafe_time {
-                current_angle = current_angle + (30.0 / speed).asin().to_degrees() * 0.5;
-                points.push([current_angle.to_radians().sin() as f64, current_angle.to_radians().cos() as f64]);
-                current_angle = current_angle + (30.0 / speed).asin().to_degrees() * 0.5;
+            while time <= total_strafe_time {
+                let mut angle_change = (30.0 / speed).asin().to_degrees() * 0.5;
+                if switch_interval > strafe_time{
+                    direction = !direction;
+                    switch_interval = 0.;
+                    angle_change *= 2.;
+                }
+                if direction {
+                    current_angle = current_angle - angle_change;
+                }
+                else
+                {
+                    current_angle = current_angle + angle_change;
+                }
+                
+                let mut amp = ((time / 2.) + 1.) as f64;
+                points.push([current_angle.to_radians().sin() as f64 * amp, current_angle.to_radians().cos() as f64 * amp]);
+                if direction {
+                    current_angle = current_angle - angle_change;
+                }
+                else
+                {
+                    current_angle = current_angle + angle_change;
+                }
                 speed = ((30.0 * 30.0) + (speed * speed)).sqrt();
                 time = time + tick_interval;
+                switch_interval = switch_interval + tick_interval;
             }
             
             use egui_plot::{Line, Plot, PlotPoints};
