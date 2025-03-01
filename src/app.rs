@@ -1,5 +1,3 @@
-use std::cmp::max;
-
 /// We derive Deserialize/Serialize so we can persist app state on shutdown.
 #[derive(serde::Deserialize, serde::Serialize)]
 #[serde(default)] // if we add new fields, give them default values when deserializing old state
@@ -79,7 +77,7 @@ impl eframe::App for TemplateApp {
             let mut speed: f32 = self.starting_velocity;
             let mut count = 0;
 
-            let mut strafe_time = 0.75 / self.strafes_per_jump as f32;
+            let strafe_time = 0.75 / self.strafes_per_jump as f32;
 
             while time <= strafe_time {
                 strafe_length = strafe_length + (30.0 / speed).asin().to_degrees();
@@ -111,17 +109,17 @@ impl eframe::App for TemplateApp {
                     current_angle = current_angle + angle_change;
                 }
 
-                let mut amp = ((time / 1.) + 1.) as f64;
+                let amp = ((time / 1.) + 1.) as f64;
                 let mut relative_time = time;
-                while (relative_time > 0.75) {
+                while relative_time > 0.75 {
                     relative_time -= 0.75;
                 }
                 let mut r: f32 = (1. - (relative_time / 0.375)) * 255.;
                 let mut g: f32 = ((relative_time) / 0.375) * 255.;
                 let mut b: f32 = ((relative_time - 0.375) / 0.375) * 255.;
-                r.clamp(0., 255.);
-                g.clamp(0., 255.);
-                b.clamp(0., 255.);
+                r = r.clamp(0., 255.);
+                g = g.clamp(0., 255.);
+                b = b.clamp(0., 255.);
 
                 player_pos.push([0., amp]);
                 points.push((
