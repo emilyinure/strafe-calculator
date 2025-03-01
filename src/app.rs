@@ -1,3 +1,5 @@
+use std::cmp::max;
+
 /// We derive Deserialize/Serialize so we can persist app state on shutdown.
 #[derive(serde::Deserialize, serde::Serialize)]
 #[serde(default)] // if we add new fields, give them default values when deserializing old state
@@ -54,12 +56,15 @@ impl eframe::App for TemplateApp {
                 ui.label("Tick rate: ");
                 ui.add(egui::Slider::new(&mut self.tick_rate, 0.0..=200.0));
             });
-        
+
             ui.horizontal(|ui| {
                 ui.label("Starting speed: ");
-                ui.add(egui::Slider::new(&mut self.starting_velocity, 250.0..=1000.0));
+                ui.add(egui::Slider::new(
+                    &mut self.starting_velocity,
+                    250.0..=1000.0,
+                ));
             });
-            
+
             ui.horizontal(|ui| {
                 ui.label("Strafe count: ");
                 ui.add(egui::Slider::new(&mut self.strafes_per_jump, 1..=10));
@@ -70,13 +75,12 @@ impl eframe::App for TemplateApp {
             let mut time = 0.0;
             let tick_interval = 1.0 / self.tick_rate;
 
-            let mut strafe_path: PlotPoints;
             let mut strafe_length: f32 = 0.0;
             let mut speed: f32 = self.starting_velocity;
             let mut count = 0;
 
             let mut strafe_time = 0.75 / self.strafes_per_jump as f32;
-            
+
             while time <= strafe_time {
                 strafe_length = strafe_length + (30.0 / speed).asin().to_degrees();
                 speed = ((30.0 * 30.0) + (speed * speed)).sqrt();
@@ -92,56 +96,90 @@ impl eframe::App for TemplateApp {
 
             let mut switch_interval = 0.0;
             let mut direction = false;
-            let mut points: Vec<[f64; 2]> = Vec::new();
+            let mut points: Vec<([f64; 2], egui::Color32)> = Vec::new();
+            let mut player_pos: Vec<[f64; 2]> = Vec::new();
             while time <= total_strafe_time {
                 let mut angle_change = (30.0 / speed).asin().to_degrees() * 0.5;
-                if switch_interval > strafe_time{
+                if switch_interval > strafe_time {
                     direction = !direction;
                     switch_interval = 0.;
                     angle_change *= 2.;
                 }
                 if direction {
                     current_angle = current_angle - angle_change;
-                }
-                else
-                {
+                } else {
                     current_angle = current_angle + angle_change;
                 }
-                
-                let mut amp = ((time / 2.) + 1.) as f64;
-                points.push([current_angle.to_radians().sin() as f64 * amp, current_angle.to_radians().cos() as f64 * amp]);
+
+                let mut amp = ((time / 1.) + 1.) as f64;
+                let mut relative_time = time;
+                while (relative_time > 0.75) {
+                    relative_time -= 0.75;
+                }
+                let mut r: f32 = (1. - (relative_time / 0.375)) * 255.;
+                let mut g: f32 = ((relative_time) / 0.375) * 255.;
+                let mut b: f32 = ((relative_time - 0.375) / 0.375) * 255.;
+                r.clamp(0., 255.);
+                g.clamp(0., 255.);
+                b.clamp(0., 255.);
+
+                player_pos.push([0., amp]);
+                points.push((
+                    [
+                        current_angle.to_radians().sin() as f64,
+                        current_angle.to_radians().cos() as f64 + amp,
+                    ],
+                    egui::Color32::from_rgb(r as u8, g as u8, b as u8),
+                ));
                 if direction {
                     current_angle = current_angle - angle_change;
-                }
-                else
-                {
+                } else {
                     current_angle = current_angle + angle_change;
                 }
                 speed = ((30.0 * 30.0) + (speed * speed)).sqrt();
                 time = time + tick_interval;
                 switch_interval = switch_interval + tick_interval;
             }
-            
+
             use egui_plot::{Line, Plot, PlotPoints};
-            let sin: PlotPoints = PlotPoints::from(points);
-            let line = Line::new(sin);
-            Plot::new("my_plot").view_aspect(1.0).width(500.0).show_x(true).show_y(true).include_x(1.0).include_x(-1.0).include_y(1.0).include_y(-1.0)
-            .label_formatter(|name, value| {
-                if !name.is_empty() {
-                    format!("{}: {:.*}%", name, 1, value.y)
-                } else {
-                    "".to_owned()
-                }
-            })
-            .show(ui, |plot_ui| plot_ui.line(line));
-            
+            Plot::new("my_plot")
+                .view_aspect(1.0)
+                .width(500.0)
+                .show_x(true)
+                .show_y(true)
+                .include_x(1.0)
+                .include_x(-1.0)
+                .include_y(1.0)
+                .include_y(-1.0)
+                .label_formatter(|name, value| {
+                    if !name.is_empty() {
+                        format!("{}: {:.*}%", name, 1, value.y)
+                    } else {
+                        "".to_owned()
+                    }
+                })
+                .show(ui, |plot_ui| {
+                    for i in 0..points.len() - 1 {
+                        let line_points: Vec<[f64; 2]> = vec![points[i].0, points[i + 1].0];
+                        let sin: PlotPoints = PlotPoints::from(line_points);
+
+                        let line = Line::new(sin).color(points[i].1);
+                        plot_ui.line(line);
+
+                        let line_player: Vec<[f64; 2]> = vec![player_pos[i], player_pos[i + 1]];
+                        let sin_player: PlotPoints = PlotPoints::from(line_player);
+
+                        let player = Line::new(sin_player).color(points[i].1);
+                        plot_ui.line(player);
+                    }
+                });
+
             ui.with_layout(egui::Layout::bottom_up(egui::Align::LEFT), |ui| {
                 powered_by_egui_and_eframe(ui);
                 egui::warn_if_debug_build(ui);
             });
         });
         // 0.75 is a full jump
-        
     }
 }
 
