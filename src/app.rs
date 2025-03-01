@@ -57,7 +57,7 @@ impl eframe::App for TemplateApp {
         
             ui.horizontal(|ui| {
                 ui.label("Starting speed: ");
-                ui.add(egui::Slider::new(&mut self.starting_velocity, 300.0..=1000.0));
+                ui.add(egui::Slider::new(&mut self.starting_velocity, 250.0..=1000.0));
             });
             
             ui.horizontal(|ui| {
