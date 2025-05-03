@@ -1,5 +1,3 @@
-use egui_plot::PlotPoint;
-
 /// We derive Deserialize/Serialize so we can persist app state on shutdown.
 #[derive(serde::Deserialize, serde::Serialize)]
 #[serde(default)] // if we add new fields, give them default values when deserializing old state
@@ -167,7 +165,6 @@ impl eframe::App for TemplateApp {
                     for i in 0..points.len() - 1 {
                         let line_points: Vec<[f64; 2]> = vec![points[i].0, points[i + 1].0];
                         if points[i].3 {
-                            let sin: PlotPoints<'_> = PlotPoints::from(line_points.clone());
                             let text = format!("{}°", points[i].2);
                             let text_pos = [
                                 points[i].0[0] + (if points[i].4 { 0.3 } else { -0.3 }),
