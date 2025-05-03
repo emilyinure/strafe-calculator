@@ -1,3 +1,5 @@
+use egui_plot::PlotPoint;
+
 /// We derive Deserialize/Serialize so we can persist app state on shutdown.
 #[derive(serde::Deserialize, serde::Serialize)]
 #[serde(default)] // if we add new fields, give them default values when deserializing old state
@@ -94,11 +96,13 @@ impl eframe::App for TemplateApp {
 
             let mut switch_interval = 0.0;
             let mut direction = false;
-            let mut points: Vec<([f64; 2], egui::Color32)> = Vec::new();
+            let mut points: Vec<([f64; 2], egui::Color32, f32, bool, bool)> = Vec::new();
             let mut player_pos: Vec<[f64; 2]> = Vec::new();
             while time <= total_strafe_time {
                 let mut angle_change = (30.0 / speed).asin().to_degrees() * 0.5;
-                if switch_interval > strafe_time {
+
+                let switch = switch_interval > strafe_time;
+                if switch {
                     direction = !direction;
                     switch_interval = 0.;
                     angle_change *= 2.;
@@ -128,6 +132,9 @@ impl eframe::App for TemplateApp {
                         current_angle.to_radians().cos() as f64 + amp,
                     ],
                     egui::Color32::from_rgb(r as u8, g as u8, b as u8),
+                    current_angle,
+                    switch,
+                    direction,
                 ));
                 if direction {
                     current_angle = current_angle - angle_change;
@@ -139,7 +146,7 @@ impl eframe::App for TemplateApp {
                 switch_interval = switch_interval + tick_interval;
             }
 
-            use egui_plot::{Line, Plot, PlotPoints};
+            use egui_plot::{Line, Plot, PlotPoints, Text};
             Plot::new("my_plot")
                 .view_aspect(1.0)
                 .width(500.0)
@@ -159,15 +166,27 @@ impl eframe::App for TemplateApp {
                 .show(ui, |plot_ui| {
                     for i in 0..points.len() - 1 {
                         let line_points: Vec<[f64; 2]> = vec![points[i].0, points[i + 1].0];
-                        let sin: PlotPoints = PlotPoints::from(line_points);
+                        if points[i].3 {
+                            let sin: PlotPoints<'_> = PlotPoints::from(line_points.clone());
+                            let text = format!("{}°", points[i].2);
+                            let text_pos = [
+                                points[i].0[0] + (if points[i].4 { 0.3 } else { -0.3 }),
+                                points[i].0[1],
+                            ];
+                            let text =
+                                Text::new("", text_pos.into(), text).color(egui::Color32::WHITE);
 
-                        let line = Line::new(sin).color(points[i].1);
+                            plot_ui.text(text);
+                        }
+                        let sin: PlotPoints<'_> = PlotPoints::from(line_points);
+
+                        let line = Line::new(String::from(""), sin).color(points[i].1);
                         plot_ui.line(line);
 
                         let line_player: Vec<[f64; 2]> = vec![player_pos[i], player_pos[i + 1]];
-                        let sin_player: PlotPoints = PlotPoints::from(line_player);
+                        let sin_player: PlotPoints<'_> = PlotPoints::from(line_player);
 
-                        let player = Line::new(sin_player).color(points[i].1);
+                        let player = Line::new("Player", sin_player).color(points[i].1);
                         plot_ui.line(player);
                     }
                 });
